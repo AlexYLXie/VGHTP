@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>可出席時段調查表</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .date-container { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
+    .time-slot { display: inline-block; margin: 4px; }
+    .hidden { display: none; }
+    .summary-table { margin-top: 30px; border-collapse: collapse; }
+    .summary-table th, .summary-table td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>選擇您有空的日期與時段（9:00-17:00）</h1>
+
+  <div id="form-container"></div>
+
+  <button onclick="submitAvailability()">送出</button>
+
+  <h2>統計表（所有人填寫結果總覽）</h2>
+  <table class="summary-table" id="summary-table"></table>
+
+  <script>
+    const startDate = new Date("2024-08-25");
+    const endDate = new Date("2024-09-12");
+    const allData = []; // 所有使用者填寫資料暫存
+    const hours = Array.from({length: 9}, (_, i) => i + 9); // 9 ~ 17
+
+    function isWeekday(date) {
+      const day = date.getDay();
+      return day !== 0 && day !== 6;
+    }
+
+    function formatDate(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    function generateForm() {
+      const container = document.getElementById("form-container");
+      let currentDate = new Date(startDate);
+
+      while (currentDate <= endDate) {
+        if (isWeekday(currentDate)) {
+          const dateStr = formatDate(currentDate);
+          const div = document.createElement("div");
+          div.className = "date-container";
+          div.innerHTML = `<strong>${dateStr}</strong><br>`;
+          
+          hours.forEach(hour => {
+            const label = document.createElement("label");
+            label.className = "time-slot";
+            const timeStr = `${hour}:00`;
+            label.innerHTML = `<input type="checkbox" name="${dateStr}" value="${hour}">${timeStr}`;
+            div.appendChild(label);
+          });
+
+          container.appendChild(div);
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    function submitAvailability() {
+      const checkboxes = document.querySelectorAll("input[type='checkbox']");
+      const availability = {};
+
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          const date = cb.name;
+          const hour = cb.value;
+          if (!availability[date]) availability[date] = [];
+          availability[date].push(hour);
+        }
+      });
+
+      allData.push(availability);
+      updateSummaryTable();
+      alert("填寫完成，感謝！");
+    }
+
+    function updateSummaryTable() {
+      const summary = {};
+
+      allData.forEach(entry => {
+        for (const date in entry) {
+          if (!summary[date]) summary[date] = {};
+          entry[date].forEach(hour => {
+            if (!summary[date][hour]) summary[date][hour] = 0;
+            summary[date][hour]++;
+          });
+        }
+      });
+
+      const table = document.getElementById("summary-table");
+      table.innerHTML = "";
+      const headerRow = document.createElement("tr");
+      headerRow.innerHTML = "<th>日期</th>" + hours.map(h => `<th>${h}:00</th>`).join("");
+      table.appendChild(headerRow);
+
+      for (const date in summary) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${date}</td>` + hours.map(h => `<td>${summary[date][h] || 0}</td>`).join("");
+        table.appendChild(row);
+      }
+    }
+
+    generateForm();
+  </script>
+</body>
+</html>
